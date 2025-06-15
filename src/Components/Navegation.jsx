@@ -9,6 +9,7 @@ import {
   Settings,
   Menu,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function Navegation() {
   const [mostrarMenu, setMostrarMenu] = useState(true);
@@ -18,7 +19,11 @@ export default function Navegation() {
   };
 
   return (
-    <nav className={`text-white ${mostrarMenu ? "w-44" : "w-16"} transition-all duration-300 overflow-hidden h-[100vh] p-4 rounded-r-2xl`}>
+    <nav
+      className={`text-white ${
+        mostrarMenu ? "w-44" : "w-16"
+      } transition-all duration-300 overflow-hidden h-[100vh] p-4 rounded-r-2xl`}
+    >
       <div className="flex justify-between items-center mb-6 border-b border-[#485460] pb-2">
         <h2 className="text-[1.4rem] font-semibold whitespace-nowrap">
           {mostrarMenu && "Finanzas"}
@@ -28,43 +33,43 @@ export default function Navegation() {
 
       <ul className="list-none space-y-4">
         <li>
-          <a href="#dashboard" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
             <House />
             {mostrarMenu && <p>Panel Principal</p>}
-          </a>
+          </Link>
         </li>
         <li>
-          <a href="#ingresos" className="flex items-center gap-2">
+          <Link to="/ingresos" className="flex items-center gap-2">
             <CircleDollarSign />
             {mostrarMenu && <p>Ingresos</p>}
-          </a>
+          </Link>
         </li>
         <li>
-          <a href="#gastos" className="flex items-center gap-2">
+          <Link to="/gastos" className="flex items-center gap-2">
             <HandCoins />
             {mostrarMenu && <p>Gastos</p>}
-          </a>
+          </Link>
         </li>
         <li>
-          <a href="#presupuesto" className="flex items-center gap-2">
+          <a href="/presupuesto" className="flex items-center gap-2">
             <Receipt />
             {mostrarMenu && <p>Presupuesto</p>}
           </a>
         </li>
         <li>
-          <a href="#reportes" className="flex items-center gap-2">
+          <a href="/reportes" className="flex items-center gap-2">
             <FlagTriangleRight />
             {mostrarMenu && <p>Reportes</p>}
           </a>
         </li>
         <li>
-          <a href="#inversiones" className="flex items-center gap-2">
+          <a href="/inversiones" className="flex items-center gap-2">
             <TrendingUp />
             {mostrarMenu && <p>Inversiones</p>}
           </a>
         </li>
         <li className={`mt-[37vh]`}>
-          <a href="#configuracion" className="flex items-center gap-2">
+          <a href="/configuracion" className="flex items-center gap-2">
             <Settings />
             {mostrarMenu && <p>Configuración</p>}
           </a>

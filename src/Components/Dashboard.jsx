@@ -1,109 +1,113 @@
-import React from "react";
-import { CircleDollarSign, HandCoins, TrendingUp } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
 } from "recharts";
+import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { db } from "../firebaseConfig/firebase"; 
 
-const movimientos = [
-  { fecha: "2025-06-10", descripcion: "Sueldo", tipo: "Ingreso", monto: 1200 },
-  { fecha: "2025-06-11", descripcion: "Supermercado", tipo: "Gasto", monto: -250 },
-  { fecha: "2025-06-12", descripcion: "Transporte", tipo: "Gasto", monto: -50 },
-  { fecha: "2025-06-12", descripcion: "Venta online", tipo: "Ingreso", monto: 200 },
-  { fecha: "2025-06-13", descripcion: "Cine", tipo: "Gasto", monto: -100 },
-  { fecha: "2025-06-13", descripcion: "Freelance", tipo: "Ingreso", monto: 400 },
-];
-
-const resumenPorDia = movimientos.reduce((acc, mov) => {
-  const dia = mov.fecha;
-  if (!acc[dia]) acc[dia] = { fecha: dia, Ingresos: 0, Gastos: 0 };
-  if (mov.monto > 0) acc[dia].Ingresos += mov.monto;
-  else acc[dia].Gastos += Math.abs(mov.monto);
-  return acc;
-}, {});
-const dataGrafico = Object.values(resumenPorDia);
-
-const totalIngresos = movimientos.filter(m => m.monto > 0).reduce((a, b) => a + b.monto, 0);
-const totalGastos = movimientos.filter(m => m.monto < 0).reduce((a, b) => a + Math.abs(b.monto), 0);
-const saldo = totalIngresos - totalGastos;
-
-const pieData = [
-  { name: "Ingresos", value: totalIngresos },
-  { name: "Gastos", value: totalGastos },
-];
-const COLORS = ["#34d399", "#f87171"];
+const COLORS = ["#00c896", "#f85a5a"];
 
 export default function Dashboard() {
+  const [movimientos, setMovimientos] = useState([]);
+  const [datosBarras, setDatosBarras] = useState([]);
+  const [datosPastel, setDatosPastel] = useState([
+    { name: "Ingresos", value: 0 },
+    { name: "Gastos", value: 0 },
+  ]);
+
+  useEffect(() => {
+    const q = query(collection(db, "movimientos"), orderBy("fecha", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const datos = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setMovimientos(datos);
+
+      // Calcular para gráfico pastel
+      const ingresos = datos
+        .filter((m) => m.tipo === "Ingreso")
+        .reduce((acc, m) => acc + m.monto, 0);
+      const gastos = datos
+        .filter((m) => m.tipo === "Gasto")
+        .reduce((acc, m) => acc + m.monto, 0);
+      setDatosPastel([
+        { name: "Ingresos", value: ingresos },
+        { name: "Gastos", value: gastos },
+      ]);
+
+      // Agrupar por fecha para gráfico de barras
+      const agrupados = {};
+      datos.forEach((mov) => {
+        const fecha = new Date(mov.fecha.seconds * 1000).toLocaleDateString();
+        if (!agrupados[fecha]) {
+          agrupados[fecha] = { fecha, Ingresos: 0, Gastos: 0 };
+        }
+        if (mov.tipo === "Ingreso") agrupados[fecha].Ingresos += mov.monto;
+        else agrupados[fecha].Gastos += mov.monto;
+      });
+
+      const barrasOrdenadas = Object.values(agrupados).sort((a, b) =>
+        a.fecha.localeCompare(b.fecha)
+      );
+      setDatosBarras(barrasOrdenadas);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   return (
-    <div className="p-8 w-full">
-      <h1 className="text-2xl font-bold mb-6 text-white">Dashboard de Finanzas Personales</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-[#222f3e] rounded-xl p-6 flex items-center gap-4 shadow">
-          <TrendingUp className="w-10 h-10 text-green-400" />
-          <div>
-            <p className="text-gray-300">Saldo actual</p>
-            <p className="text-2xl font-semibold text-white">${saldo}</p>
-          </div>
-        </div>
-        <div className="bg-[#222f3e] rounded-xl p-6 flex items-center gap-4 shadow">
-          <CircleDollarSign className="w-10 h-10 text-blue-400" />
-          <div>
-            <p className="text-gray-300">Ingresos</p>
-            <p className="text-2xl font-semibold text-white">${totalIngresos}</p>
-          </div>
-        </div>
-        <div className="bg-[#222f3e] rounded-xl p-6 flex items-center gap-4 shadow">
-          <HandCoins className="w-10 h-10 text-red-400" />
-          <div>
-            <p className="text-gray-300">Gastos</p>
-            <p className="text-2xl font-semibold text-white">${totalGastos}</p>
-          </div>
-        </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-4 w-full max-w-[1200px]">
+      <div className="bg-[#1e272e] p-6 rounded-xl shadow-md flex flex-col items-center">
+        <h2 className="text-xl font-semibold mb-4 text-white">Distribución</h2>
+        <PieChart width={250} height={250}>
+          <Pie
+            data={datosPastel}
+            cx="50%"
+            cy="50%"
+            innerRadius={60}
+            outerRadius={100}
+            fill="#8884d8"
+            paddingAngle={5}
+            dataKey="value"
+          >
+            {datosPastel.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index]} />
+            ))}
+          </Pie>
+          <Legend verticalAlign="bottom" height={36} />
+        </PieChart>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-        <div className="bg-[#222f3e] rounded-xl p-6 shadow">
-          <h2 className="text-xl font-semibold text-white mb-4">Ingresos vs Gastos (Pie)</h2>
-          <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {pieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="bg-[#222f3e] rounded-xl p-6 shadow">
-          <h2 className="text-xl font-semibold text-white mb-4">Movimientos por día (Barra)</h2>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={dataGrafico}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="fecha" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="Ingresos" fill="#34d399" />
-              <Bar dataKey="Gastos" fill="#f87171" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      {/* Gráfico de barras */}
+      <div className="bg-[#1e272e] p-6 rounded-xl shadow-md">
+        <h2 className="text-xl font-semibold mb-4 text-white">Ingresos vs Gastos</h2>
+        <BarChart width={400} height={250} data={datosBarras}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="fecha" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          <Bar dataKey="Ingresos" fill="#00c896" />
+          <Bar dataKey="Gastos" fill="#f85a5a" />
+        </BarChart>
       </div>
 
-      <div className="bg-[#222f3e] rounded-xl p-6 shadow">
-        <h2 className="text-xl font-semibold text-white mb-4">Movimientos recientes</h2>
-        <table className="w-full text-left text-gray-300">
+      {/* Tabla de movimientos */}
+      <div className="bg-[#1e272e] col-span-1 xl:col-span-2 p-6 rounded-xl shadow-md mt-4">
+        <h2 className="text-xl font-semibold mb-4 text-white">Movimientos recientes</h2>
+        <table className="w-full text-left text-white">
           <thead>
-            <tr>
+            <tr className="border-b border-gray-700">
               <th className="pb-2">Fecha</th>
               <th className="pb-2">Descripción</th>
               <th className="pb-2">Tipo</th>
@@ -111,13 +115,19 @@ export default function Dashboard() {
             </tr>
           </thead>
           <tbody>
-            {movimientos.map((mov, idx) => (
-              <tr key={idx} className="border-b border-gray-700 last:border-b-0">
-                <td className="py-2">{mov.fecha}</td>
-                <td className="py-2">{mov.descripcion}</td>
-                <td className="py-2">{mov.tipo}</td>
-                <td className={`py-2 ${mov.monto < 0 ? "text-red-400" : "text-green-400"}`}>
-                  ${Math.abs(mov.monto)}
+            {movimientos.map((mov) => (
+              <tr key={mov.id} className="border-t border-gray-700">
+                <td className="py-2">
+                  {new Date(mov.fecha.seconds * 1000).toLocaleDateString()}
+                </td>
+                <td>{mov.descripcion}</td>
+                <td>{mov.tipo}</td>
+                <td
+                  className={
+                    mov.tipo === "Ingreso" ? "text-green-400" : "text-red-400"
+                  }
+                >
+                  ${mov.monto}
                 </td>
               </tr>
             ))}
