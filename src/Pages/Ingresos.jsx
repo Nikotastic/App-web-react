@@ -34,7 +34,7 @@ const Ingresos = () => {
   const [nuevaDescripcion, setNuevaDescripcion] = useState("");
   const [nuevoMonto, setNuevoMonto] = useState("");
 
-  // 🔁 Leer ingresos en tiempo real
+
   useEffect(() => {
     const q = query(
       collection(db, "movimientos"),
@@ -45,7 +45,7 @@ const Ingresos = () => {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const datos = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }))
-        .filter((doc) => doc.fecha); // ✅ ignora documentos sin fecha
+        .filter((doc) => doc.fecha); 
 
       setIngresos(datos);
 
@@ -68,14 +68,14 @@ const Ingresos = () => {
     return () => unsubscribe();
   }, []);
 
-  // ➕ Agregar ingreso
+
   const agregarIngreso = async () => {
     try {
       await addDoc(collection(db, "movimientos"), {
         descripcion: nuevaDescripcion,
         monto: parseFloat(nuevoMonto),
         tipo: "Ingreso",
-        fecha: Timestamp.fromDate(new Date()), // ✅ instantáneo y válido
+        fecha: Timestamp.fromDate(new Date()),
       });
       setNuevaDescripcion("");
       setNuevoMonto("");
@@ -84,7 +84,6 @@ const Ingresos = () => {
     }
   };
 
-  // 📝 Editar ingreso
   const comenzarEdicion = (ingreso) => {
     setEditandoId(ingreso.id);
     setEditDescripcion(ingreso.descripcion);
@@ -106,7 +105,6 @@ const Ingresos = () => {
     }
   };
 
-  // ❌ Eliminar ingreso
   const eliminarIngreso = async (id) => {
     try {
       await deleteDoc(doc(db, "movimientos", id));
